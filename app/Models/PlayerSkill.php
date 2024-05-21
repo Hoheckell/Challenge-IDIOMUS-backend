@@ -7,6 +7,9 @@
 
 namespace App\Models;
 
+use App\DTO\PlayerSkillDto;
+use App\Enums\PlayerSkill as EPlayerSkill;
+use App\Exceptions\InvalidPlayerSkillException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,11 +28,27 @@ class PlayerSkill extends Model
     ];
 
     protected $casts = [
-        'skill' => \App\Enums\PlayerSkill::class
+        'skill' => EPlayerSkill::class
     ];
 
     public function player(): BelongsTo
     {
         return $this->belongsTo(Player::class);
     }
+
+    public function toDto()
+    {
+        return new PlayerSkillDto($this->id, EPlayerSkill::from($this->skill->value), $this->value, $this->player_id);
+    }
+
+
+    public function setSkill(string $value)
+    {
+        if (EPlayerSkill::tryFrom($value) == null) {
+            throw new InvalidPlayerSkillException($value, 400);
+        }
+
+        $this->skill = EPlayerSkill::from($value);
+    }
+    
 }

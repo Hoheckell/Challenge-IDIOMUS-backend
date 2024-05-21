@@ -6,22 +6,81 @@
 // /////////////////////////////////////////////////////////////////////////////
 
 namespace Tests\Feature;
+use App\Models\PlayerSkill;
+use App\Models\Player;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 
 class TeamControllerTest extends PlayerControllerBaseTest
 {
-    public function test_sample()
+    use RefreshDatabase;
+
+    protected function setUp(): void
     {
-        $requirements =
-            [
-                'position' => "defender",
-                'mainSkill' => "speed",
-                'numberOfPlayers' => 1
-            ];
+        parent::setUp();
 
-
-        $res = $this->postJson(self::REQ_TEAM_URI, $requirements);
-
-        $this->assertNotNull($res);
+        // Seed the database with some test data
+        $this->seedTestData();
     }
+
+    protected function seedTestData()
+    {
+        // Create some players with skills
+        Player::factory()->has(
+            PlayerSkill::factory()->count(3),
+            'skills'
+        )->count(10)->create();
+    }
+
+
+    public function testTeamSelectionEndpoint()
+    {
+        $requestPayload = [
+            [
+                "position" => "midfielder",
+                "mainSkill" => "speed",
+                "numberOfPlayers" => 1
+            ],
+            [
+                "position" => "defender",
+                "mainSkill" => "strength",
+                "numberOfPlayers" => 2
+            ]
+        ];
+
+        $response = $this->postJson(self::REQ_TEAM_URI, $requestPayload);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            [
+                'name',
+                'position',
+                'playerSkills' => [
+                    [
+                        'skill',
+                        'value'
+                    ]
+                ]
+            ]
+        ]);
+    }
+
+    public function testInsufficientPlayers()
+    {
+        $requestPayload = [
+            [
+                "position" => "midfielder",
+                "mainSkill" => "stamina",
+                "numberOfPlayers" => 5
+            ]
+        ];
+
+        $response = $this->postJson(self::REQ_TEAM_URI, $requestPayload);
+
+        $response->assertStatus(400);
+        $response->assertJson([
+            'message' => 'Insufficient number of players for position: midfielder'
+        ]);
+    }
+    
 }

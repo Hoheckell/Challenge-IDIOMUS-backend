@@ -33,6 +33,11 @@ class Handler extends ExceptionHandler
         'password_confirmation',
     ];
 
+    public function report(Throwable $exception)
+    {
+        parent::report($exception);
+    }
+
     /**
      * Register the exception handling callbacks for the application.
      *
@@ -40,8 +45,30 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
-        $this->renderable(function (Exception $e, $request) {
-            //
+        $this->renderable(function (InvalidPlayerPositionException $e, $request) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], $e->getCode());
         });
+
+        $this->renderable(function (InvalidPlayerSkillException $e, $request) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], $e->getCode());
+        });
+    }
+
+    public function render($request, Throwable $exception)
+    {
+        
+        if ($exception instanceof InvalidPlayerPositionException) {
+            return response()->json(['message' => $exception->getMessage()], $exception->getCode());
+        }
+
+        if ($exception instanceof InvalidPlayerSkillException) {
+            return response()->json(['message' => $exception->getMessage()], $exception->getCode());
+        } 
+
+        return parent::render($request, $exception);
     }
 }

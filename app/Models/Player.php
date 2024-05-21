@@ -7,7 +7,9 @@
 
 namespace App\Models;
 
+use App\DTO\PlayerDto;
 use App\Enums\PlayerPosition;
+use App\Exceptions\InvalidPlayerPositionException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +31,11 @@ class Player extends Model
         'position'
     ];
 
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+
     protected $casts = [
         'position' => PlayerPosition::class
     ];
@@ -39,4 +46,25 @@ class Player extends Model
     {
         return $this->hasMany(PlayerSkill::class);
     }
+
+    public function toDto()
+    {
+        $skills = [];
+        if (!empty($this->skills)) {
+            foreach ($this->skills as $skill) {
+                $skills[] = $skill->toDto();
+            }
+        }
+        return new PlayerDto($this->id, $this->name, $this->position, $skills);
+    }
+
+    public function setPlayerPosition(string $value)
+    {
+        if (PlayerPosition::tryFrom($value) == null) {
+            throw new InvalidPlayerPositionException($value, 400);
+        }
+
+        $this->position = PlayerPosition::from($value);
+    }
+
 }
